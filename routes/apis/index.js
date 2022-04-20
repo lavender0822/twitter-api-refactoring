@@ -12,6 +12,7 @@ const userController = require('../../controllers/user-controllers')
 const replyController = require('../../controllers/reply-contollers')
 
 const { authenticated, authenticatedAdmin } = require('../../middleware/api-auth')
+const { apiErrorHandler } = require('../../middleware/error-handler')
 
 router.post('/users/signin', passport.authenticate('local', { session: false }), userController.login)
 router.post('/admin/login', passport.authenticate('local', { session: false }), adminController.login)
@@ -27,5 +28,7 @@ router.delete('/followships/:followingId', authenticated, userController.removeF
 router.use('/admin', authenticated, authenticatedAdmin, admin)
 router.use('/users', authenticated, user)
 router.use('/tweets', authenticated, tweet)
+
+router.use('/', apiErrorHandler)
 
 module.exports = router

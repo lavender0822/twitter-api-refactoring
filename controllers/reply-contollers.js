@@ -2,63 +2,42 @@ const { User, Tweet, Reply } = require('../models')
 
 const helpers = require('../_helpers')
 
+// try{} catch(e) { next(e) }
+
 const replyController = {
-    postReply: (req, res, next) => {
-        const { tweet_id } = req.params
-        const comment = req.body.comment.trim() || null
-        const userId = helpers.getUser(req).id
-        return Promise.all([
-            User.findByPk(userId),
-            Tweet.findByPk(tweet_id)
-        ])
-        .then(([ user, tweet ]) => {
-            if (!user) return res.json({ status: 'error', message: "User didn't exist!" })
-            if (!tweet) return res.json({ status: 'error', message: "Tweet didn't exist!" })
-            if (!comment) return res.json({ status: 'error', message: "Comment is required!'" })
-            if (comment.length > 140) return res.json({ status: 'error', message: "Comment is too long!'" })
-            return Reply.create({
+    postReply: async (req, res, next) => {
+        try{
+            const { tweet_id } = req.params
+            const comment = req.body?.comment?.trim() || null
+            const userId = helpers.getUser(req).id
+            const newReply = await Reply.create({
                 comment,
                 TweetId: tweet_id,
                 UserId: userId
             })
-            .then(() => {
-               return res.json({ status: 'success'})
-            })
-            .catch(err => next(err))
-        })
+            res.json({ status: 'success'})
+        } catch(e) { next(e) }
     },
 
     putReply: async (req, res, next) => {
-        const replyId = req.params.reply_id
-        const comment = req.body.comment.trim() || null
-
         try {
- 
-            if (!comment) return res.json({ status: 'error', message: "Comment is required!'" })
-            if (comment.length > 140) return res.json({ status: 'error', message: "Comment is too long!'" })
-
+            const replyId = req.params.reply_id
+            const comment = req.body?.comment?.trim() || null
             const reply = await Reply.findByPk(replyId)
-            if (!reply) return res.json({ status: 'error', message: "Reply didn't exist!"})
-            if (helpers.getUser(req).id !== Number(reply.UserId)) return res.json({ status: 'error', message: "You can't do this!" })
-   
-            return reply.update({ comment })
-            .then(() => res.json({ status: 'success' }))
+            reply.update({ comment })
+            res.json({ status: 'success' })
         } catch (err) { next(err) }
     },
 
     deleteReply: async (req, res, next) => {
-        const replyId = req.params.reply_id
-
         try {
+            const replyId = req.params.reply_id
             const reply = await Reply.findByPk(replyId)
-            if (!reply) return res.json({ status: 'error', message: "Reply didn't exist!"})
-            if (helpers.getUser(req).id !== Number(reply.UserId)) return res.json({ status: 'error', message: "You can't do this!" })
-
-
-            return reply.destroy()
-            .then(() => res.json({ status: 'success' }))
+            if (!reply) throw new Error("Reply didn't exist!")
+            if (helpers.getUser(req).id !== Number(reply.UserId)) throw new Error("You can't do this!")
+            reply.destroy()
+            res.json({ status: 'success'})
         } catch (err) { next(err) }
-
     }
 }
 
