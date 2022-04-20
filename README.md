@@ -1,7 +1,8 @@
 # README
 本專案採前後分離模式開發社群網站Alphitter，後端使用 Express.js、SQL資料庫、RESTful API 設計風格來架設API伺服器，前端使用Vue.js框架。
+此處為課程後自行重構程式碼
 [前端REPO](https://github.com/ShuenRachel/twitter-front-end)
-[後端REPO](https://github.com/lavender0822/twitter-api-2020)
+[先前後端REPO](https://github.com/lavender0822/twitter-api-2020)
 
 ## 功能
 * 使用者可註冊帳號作為登入使用
