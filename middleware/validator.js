@@ -28,7 +28,18 @@ const putReplyCheck = async (req, res, next) => {
     next()
 }
 
+const tweetCheck = async (req, res, next) => {
+    try {
+        const description = req.body?.description?.trim() || null
+        const UserId = helpers.getUser(req).id
+        if (!description) throw new Error('Description is required!')
+        if (description.length > 140) throw new Error('Tweet text must be less than 140 characters!')
+    } catch (err) { next(err) }
+    next()
+}
+
 module.exports = {
     postReplyCheck,
-    putReplyCheck
+    putReplyCheck,
+    tweetCheck
 }

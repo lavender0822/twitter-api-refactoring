@@ -2,59 +2,6 @@ const helpers = require('../_helpers')
 const { User, Tweet, Reply, Like } = require("../models");
 
 const tweetController = {
-  getReplies: async (req, res, next) => {
-    const { tweet_id } = req.params;
-    try {
-      const tweet = await Tweet.findByPk(tweet_id, {
-        include: [
-          { model: Reply, other: ['createAt', 'DESC'], include: [{model: User, attributes: ['id', 'name', 'account', 'avatar']}]},
-          { model: User }
-        ],
-      })
-      if (!tweet) return res.json({ status: "error", message: "Tweet didn't exist!" });
-      const result = tweet.Replies.map(reply => {
-        return {
-          TweetId: reply.TweetId,
-          tweetUserId: tweet.User.id,
-          tweetUserAccount: tweet.User.account,
-          commentId: reply.id,
-          comment: reply.comment,
-          createdAt: reply.createdAt,
-          commentUser: reply.User
-        }
-      })
-      return res.json(result);
-    } catch (err) { next(err) }
-  },
-  addLike: async (req, res, next) => {
-    const UserId = helpers.getUser(req).id;
-    const TweetId = req.params.tweet_id
-
-    try {
-      const tweet = await Tweet.findByPk(TweetId)
-      if (!tweet) return res.json({ status: "error", message: "Tweet didn't exist!"})
-
-      const like = await Like.findOne({ where: { UserId, TweetId }})
-      if (like) return res.json({ status: "error", message: "You have like this tweet!"})
-
-      return Like.create({ UserId, TweetId })
-      .then(() => res.json({ status: 'success'}))
-    } catch(err) { next(err) }
-  },
-
-  removeLike: async (req, res, next) => {
-    const UserId = helpers.getUser(req).id;
-    const TweetId = req.params.tweet_id
-
-    try {
-      const like = await Like.findOne({ where: { UserId, TweetId }})
-      if (!like) return res.json({ status: "error", message: "You haven't like this tweet!"})
-
-      return like.destroy()
-      .then(() => res.json({ status: 'success'}))
-    } catch(err) { next(err) }
-  },
-
   getTweets: async (req, res, next) => {
     try {
       const tweets = await Tweet.findAll({
@@ -63,9 +10,7 @@ const tweetController = {
           { model: Reply },
           { model: Like }]
       })
-      if (!tweets) {
-        return res.json({ status: 'error', message: 'No tweets!' })
-      }
+      if (!tweets) return res.json([])
       const result = tweets.map(tweet => {
         return {
           TweetId: tweet.id,
@@ -80,10 +25,8 @@ const tweetController = {
           liked: req.user.LikedTweets ? req.user.LikedTweets.some(l => l.id === tweet.id) : false
         }
       })
-      return res.json(result)
-    } catch (err) {
-      next(err)
-    }
+      res.json(result)
+    } catch (err) { next(err) }
   },
 
   getTweet: async (req, res, next) => {
@@ -94,9 +37,7 @@ const tweetController = {
           { model: Reply, include: User },
           { model: Like }]
         })
-      if (!tweet) {
-        return res.json({ status: 'error', message: "This tweet didn't exist!" })
-      }
+      if (!tweet) return res.json([])
       const reply = tweet.Replies
       const replyResult = reply.map(r => ({
         repliedComment: r.comment,
@@ -118,27 +59,69 @@ const tweetController = {
         liked: req.user.LikedTweets ? req.user.LikedTweets.some(l => l.id === tweet.id) : false,
         replyResult
       }
-      
-      return res.json(result)
-    } catch (err) {
-      next(err)
-    }
+      res.json(result)
+    } catch (err) { next(err) }
   },
   
   postTweet: async (req, res, next) => {
-    const description = req.body.description.trim() || null
-    const UserId = helpers.getUser(req).id
-    if (!description) return res.json({ status: 'error', message: 'Description is required!' })
-    if (description.length > 140) return res.json({ status: 'error', message: 'Tweet text must be less than 140 characters!' })
     try {
+      const description = req.body.description.trim() || null
+      const UserId = helpers.getUser(req).id
       await Tweet.create({
         description,
         UserId
       })
-      return res.json({ status: 'success' })
-    } catch (err) {
-      next(err)
-    }
+      res.json({ status: 'success' })
+    } catch (err) { next(err) }
+  },
+
+  getReplies: async (req, res, next) => {
+    try {
+      const { tweet_id } = req.params;
+      const tweet = await Tweet.findByPk(tweet_id, {
+        include: [
+          { model: Reply, other: ['createAt', 'DESC'], include: [{model: User, attributes: ['id', 'name', 'account', 'avatar']}]},
+          { model: User }
+        ],
+      })
+      if (!tweet) throw new Error("Tweet didn't exist!")
+      const result = tweet.Replies.map(reply => {
+        return {
+          TweetId: reply.TweetId,
+          tweetUserId: tweet.User.id,
+          tweetUserAccount: tweet.User.account,
+          commentId: reply.id,
+          comment: reply.comment,
+          createdAt: reply.createdAt,
+          commentUser: reply.User
+        }
+      })
+      res.json(result);
+    } catch (err) { next(err) }
+  },
+
+  addLike: async (req, res, next) => {
+    try {
+      const UserId = helpers.getUser(req).id;
+      const TweetId = req.params.tweet_id
+      const tweet = await Tweet.findByPk(TweetId)
+      const like = await Like.findOne({ where: { UserId, TweetId }})
+      if (!tweet) throw new Error("Tweet didn't exist!")
+      if (like) throw new Error("You have like this tweet!")
+      Like.create({ UserId, TweetId })
+      res.json({ status: 'success'})
+    } catch(err) { next(err) }
+  },
+
+  removeLike: async (req, res, next) => {
+    try {
+      const UserId = helpers.getUser(req).id;
+      const TweetId = req.params.tweet_id
+      const like = await Like.findOne({ where: { UserId, TweetId }})
+      if (!like) throw new Error("You haven't like this tweet!")
+      like.destroy()
+      res.json({ status: 'success'})
+    } catch(err) { next(err) }
   }
 }
 
