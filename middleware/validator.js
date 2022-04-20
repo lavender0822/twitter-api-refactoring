@@ -38,8 +38,41 @@ const tweetCheck = async (req, res, next) => {
     next()
 }
 
+const signUpCheck = async (req, res, next) => {
+    try {
+        const account = req.body?.account?.trim() || null
+        const password = req.body?.password?.trim() || null
+        const checkPassword = req.body?.checkPassword?.trim() || null
+        const name = req.body?.name?.trim() || null
+        const email = req.body?.email?.trim() || null
+        const userEmail = await User.findOne({ where: { email } })
+        const userAccount = await User.findOne({ where: { account } })
+        if (!account || !password || !checkPassword || !name || !email) throw new Error('All fields are required!')
+        if (name.length > 50) throw new Error('Name is too long!')
+        if (password !== checkPassword) throw new Error('Passwords do not match!')
+        if (userEmail) throw new Error('Email already existed!')
+        if (userAccount) throw new Error('Account already existed!')
+    } catch (err) { next(err) }
+    next()
+}
+
+//throw new Error('introduction must be less than 160 characters!')
+const putUserCheck = async (req, res, next) => {
+    try {
+        const user = await User.findByPk(req.params.id)
+        const { name, introduction } = req.body 
+        if (!user) throw new Error("User didn't exist!")
+        if (!name) throw new Error('Name is required!')
+        if (name.length > 50) throw new Error('Name must be less than 50 characters!')
+        if (introduction.length > 160) throw new Error('introduction must be less than 160 characters!')
+    } catch (err) { next(err) }
+    next()
+}
+
 module.exports = {
     postReplyCheck,
     putReplyCheck,
-    tweetCheck
+    tweetCheck,
+    signUpCheck,
+    putUserCheck,
 }
